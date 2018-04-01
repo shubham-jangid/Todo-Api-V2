@@ -7,7 +7,7 @@ var { mongoose } = require("./db/mongoose");
 var { Todo } = require("./models/Todo.js");
 var { User } = require("./models/User.js");
 
-app = express();
+var app = express();
 
 app.use(bodyParser.json());
 
@@ -69,7 +69,7 @@ app.delete("/todos/:id", (req, res) => {
       res.status(200).send({ todo });
     })
     .catch(err => {
-      res.status(404).send(err);
+      res.status(400).send(err);
     });
 });
 
@@ -78,11 +78,9 @@ app.delete("/todos/:id", (req, res) => {
 app.patch("/todos/:id", (req, res) => {
   var id = req.params.id;
   var body = _.pick(req.body, ["text", "completed"]);
-
   if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
+    return res.status(400).send();
   }
-
   if (_.isBoolean(body.completed) && body.completed) {
     body.completedAt = new Date().getTime();
   } else {
@@ -92,15 +90,48 @@ app.patch("/todos/:id", (req, res) => {
   Todo.findByIdAndUpdate(id, { $set: body }, { new: true })
     .then(todo => {
       if (!todo) {
-        return res.status(404).send();
+        return res.status(400).send();
       }
-
       res.send({ todo });
     })
     .catch(e => {
-      res.status(400).send();
+      res.status(400).send(err);
     });
 });
+// signup user
+// app.post("/users", (req, res) => {
+//   var body = _.pick(req.body, ["email", "password"]);
+//   var user = new User(body);
+//   user
+//     .save()
+//     .then(() => {
+//       return user.generateAuthToken();
+//     })
+//     .then(token => {
+//       res.header("x-auth", token).send(user);
+//     })
+//     .catch(e => {
+//       res.status(400).send(e);
+//     });
+// });
+
+app.post("/users", (req, res) => {
+  var body = _.pick(req.body, ["email", "password"]);
+  var user = new User(body);
+
+  user
+    .save()
+    .then(() => {
+      return user.generateAuthToken();
+    })
+    .then(token => {
+      res.header("x-auth", token).send(user);
+    })
+    .catch(e => {
+      res.status(400).send(e);
+    });
+});
+
 // listening on port 3000
 app.listen(3000, () => {
   console.log("on port 3000");
